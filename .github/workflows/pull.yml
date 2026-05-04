@@ -59,11 +59,11 @@ jobs:
               fi
             fi
             
-            sleep 10
+            sleep 5
           done
 
-      - name: Sleep 1 Minute
-        run: sleep 60
+      - name: Sleep 10 s
+        run: sleep 10
 
       - name: Trigger Deploy
         env:
