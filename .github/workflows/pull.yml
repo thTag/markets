@@ -1,5 +1,5 @@
 name: 核心调度器
-on:
+于:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
@@ -28,8 +28,8 @@ jobs:
           gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.koi_id }}/dispatches" -f ref=main
           gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.astr_id }}/dispatches" -f ref=main
           
-          echo "已触发 koi.yml 和 astr.yml，等待 15 秒让 GitHub 初始化..."
-          sleep 15
+          echo "已触发数据拉取，等待 10 秒进行初始化..."
+          sleep 10
 
       - name: Wait for Success
         env:
@@ -53,7 +53,7 @@ jobs:
               ASTR_CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
               
               if [[ "$KOI_CONCLUSION" == "success" && "$ASTR_CONCLUSION" == "success" ]]; then
-                echo "两个拉取任务均成功！"
+                echo "s所有拉取任务z执行成功！"
                 break
               else
                 echo "存在失败任务(Koi: $KOI_CONCLUSION, Astr: $ASTR_CONCLUSION)，终止部署。"
@@ -63,9 +63,6 @@ jobs:
             
             sleep 5
           done
-
-      - name: Sleep 10 s
-        run: sleep 10
 
       - name: Trigger Deploy
         env:
