@@ -14,7 +14,7 @@ jobs:
     steps:
       # 1. 拉取 main 分支代码（为了拿到根目录的 index.html 和 CNAME）
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # 2. 获取数据制品的 Run ID
       - name: Resolve latest run-ids of koi & astr
