@@ -1,0 +1,13 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # 自动更新 GitHub Actions 工作流里使用的 actions
+  - package-ecosystem: "github-actions"
+    # 工作流都在默认位置 .github/workflows，这里用 "/" 即可
+    directory: "/"
+    schedule:
+      interval: "weekly"
