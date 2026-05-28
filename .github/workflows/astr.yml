@@ -15,7 +15,7 @@ jobs:
           curl -fsSL "$SRC_URL" -o "astr/plugin_cache_original.json"
 
       - name: Upload Astr Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: astr-data
           path: astr/
