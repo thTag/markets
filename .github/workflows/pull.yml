@@ -4,10 +4,12 @@ on:
   schedule:
     - cron: '*/15 * * * *'  # 每15分钟运行一次
   workflow_dispatch:         # 支持手动触发
-  
+
 jobs:
   control-plane:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write   # 允许触发其他 workflow 的 workflow_dispatch 事件
     steps:
       - name: Get Workflow IDs
         id: get_ids
