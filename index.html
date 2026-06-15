@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>插件市场</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #0f172a; --card: #020617; --accent: #3b82f6; --border: #1e293b; --text: #e5e7eb; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+    h1 { margin-bottom: 8px; font-size: 1.6rem; }
+    .sub { color: #94a3b8; margin-bottom: 16px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); cursor: pointer; background: transparent; color: var(--text); }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .search-box { width: 100%; max-width: 400px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 1rem; outline: none; margin-bottom: 12px; }
+    .search-box:focus { border-color: var(--accent); }
+    .search-box::placeholder { color: #64748b; }
+    .stats { display: flex; gap: 8px; font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; min-height: 200px; }
+    .card { background: var(--card); border-radius: 10px; border: 1px solid var(--border); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .card-name { font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 1.05rem; }
+    .author { font-size: 0.8rem; color: #94a3b8; }
+    .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: rgba(59,130,246,0.18); color: #93c5fd; white-space: nowrap; }
+    .desc { font-size: 0.85rem; color: #cbd5e1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+    .tag { background: rgba(59,130,246,0.12); color: #93c5fd; border-radius: 999px; padding: 2px 8px; font-size: 0.75rem; }
+    a.repo { color: #60a5fa; text-decoration: none; font-size: 0.75rem; word-break: break-all; }
+    a.repo:hover { text-decoration: underline; }
+    #pager { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 24px; flex-wrap: wrap; }
+    .page-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 0.9rem; }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .page-dots { color: #64748b; padding: 0 4px; }
+    .loading { margin-top: 12px; color: #94a3b8; }
+    .error { color: #f87171; margin-top: 8px; }
+    .footer { margin-top: 30px; font-size: 0.8rem; color: #64748b; border-top: 1px solid var(--border); padding-top: 12px; }
+
+    .copy-btn {
+      position: fixed; z-index: 1000; padding: 8px 16px; background: var(--card); color: var(--text);
+      border: 1px solid var(--border); cursor: pointer; font-size: 0.9rem;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); backdrop-filter: blur(4px);
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.success { border-color: #22c55e; color: #22c55e; }
+    @media (min-width: 769px) { .copy-btn { top: 20px; right: 20px; border-radius: 999px; } }
+    @media (max-width: 768px) { .copy-btn { bottom: 20px; right: 20px; border-radius: 8px; } }
+  </style>
+</head>
+<body>
+  <button id="copyBtn" class="copy-btn">📋 复制数据源链接</button>
+  <div class="wrap">
+    <h1>插件市场</h1>
+    <p class="sub">Koi / Astr 插件统一浏览与搜索</p>
+    <div class="tabs">
+      <button class="tab active" data-source="koi">Koi</button>
+      <button class="tab" data-source="astr">Astr</button>
+    </div>
+    <input type="text" id="searchInput" class="search-box" placeholder="搜索插件名、作者、描述...">
+    <div class="stats"><span id="count">插件数量：-</span></div>
+    <div class="grid" id="grid"></div>
+    <div id="pager"></div>
+    <div id="status" class="loading">正在加载数据…</div>
+    <div class="footer">数据来自上游官方仓库，仅供镜像与检索使用。</div>
+  </div>
+
+  <script>
+    const TAB_MAP = { koi: { url: './koi/flat.json' }, astr: { url: './astr/plugin_cache_original.json' } };
+    const COPY_MAP = {
+      koi: 'https://markets.th-dd.top/koi/index.json',
+      astr: 'https://raw.githubusercontent.com/th-dd/markets/refs/heads/gh-pages/astr/plugin_cache_original.json'
+    };
+    let cache = {}, active = 'koi', searchTerm = '', currentPage = 1;
+    const PAGE_SIZE = 20;
+    const grid = document.getElementById('grid'), status = document.getElementById('status'), countEl = document.getElementById('count');
+    const pagerEl = document.getElementById('pager'), searchInput = document.getElementById('searchInput');
+    const tabs = document.querySelectorAll('.tab'), copyBtn = document.getElementById('copyBtn');
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+    function getArray(data) {
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') {
+        const v = Object.values(data);
+        if (v.length > 0 && v.every(x => x && typeof x === 'object' && !Array.isArray(x))) return v;
+        if (v.every(x => Array.isArray(x))) return v.flat();
+      }
+      return [];
+    }
+    function getFilteredData() {
+      const arr = getArray(cache[active]);
+      if (!searchTerm) return arr;
+      const l = searchTerm.toLowerCase();
+      return arr.filter(i => Object.values(i).some(v => String(v).toLowerCase().includes(l)));
+    }
+    function render() {
+      grid.innerHTML = ''; pagerEl.innerHTML = ''; status.textContent = '';
+      if (!cache[active]) { status.className = 'loading'; status.textContent = '正在加载…'; return; }
+      const filtered = getFilteredData();
+      countEl.textContent = '匹配插件数量：' + filtered.length;
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const startIdx = (currentPage - 1) * PAGE_SIZE;
+      const pageData = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+      if (pageData.length === 0) { status.className = 'error'; status.textContent = '没有找到匹配的插件'; return; }
+      pageData.forEach(p => {
+        const c = document.createElement('div'); c.className = 'card';
+        const name = p.name || p.display_name || '', ver = p.version || '', desc = p.description || p.desc || '';
+        const repo = p.repo || p.repository || '', tags = p.tags || [], author = p.author || '';
+        let h = '<div class="card-name"><span>' + esc(name) + '</span>';
+        if (ver) h += '<span class="badge">' + esc(ver) + '</span>'; h += '</div>';
+        if (author) h += '<div class="author">作者：' + esc(author) + '</div>';
+        if (desc) h += '<div class="desc">' + esc(desc) + '</div>';
+        if (tags && tags.length) h += '<div class="tags">' + tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('') + '</div>';
+        if (repo) h += '<div>仓库：<a class="repo" target="_blank" rel="noopener noreferrer" href="' + esc(repo) + '">' + esc(repo) + '</a></div>';
+        c.innerHTML = h; grid.appendChild(c);
+      });
+      if (totalPages > 1) {
+        pagerEl.style.display = 'flex';
+        let pb = '<button class="page-btn" onclick="goToPage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>上一页</button>';
+        let ph = ''; for (let i = 1; i <= totalPages; i++) { if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) { ph += '<button class="page-btn '+(i===currentPage?'active':'')+'" onclick="goToPage('+i+')">'+i+'</button>'; } else if (i === currentPage - 3 || i === currentPage + 3) { ph += '<span class="page-dots">...</span>'; } }
+        let nb = '<button class="page-btn" onclick="goToPage('+(currentPage+1)+')" '+(currentPage===totalPages?'disabled':'')+'>下一页</button>';
+        pagerEl.innerHTML = pb + ph + nb;
+      } else { pagerEl.style.display = 'none'; }
+    }
+    window.goToPage = function(page) { currentPage = page; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    window.switchTo = async function(source) {
+      active = source;
+      tabs.forEach(b => b.classList.toggle('active', b.getAttribute('data-source') === source));
+      searchInput.value = ''; searchTerm = ''; currentPage = 1;
+      status.className = 'loading'; status.textContent = '正在加载…'; grid.innerHTML = '';
+      try {
+        if (!cache[source]) {
+          const r = await fetch(TAB_MAP[source].url);
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const j = await r.json();
+          cache[source] = Array.isArray(j) ? j : (j && typeof j === 'object' ? Object.values(j) : []);
+        }
+        render();
+      } catch (e) { status.className = 'error'; status.textContent = '加载失败：' + e.message; }
+    };
+    searchInput.addEventListener('input', e => { searchTerm = e.target.value.trim(); currentPage = 1; render(); });
+    tabs.forEach(b => b.addEventListener('click', () => switchTo(b.getAttribute('data-source'))));
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(COPY_MAP[active]);
+        copyBtn.textContent = '✅ 已复制'; copyBtn.classList.add('success');
+        setTimeout(() => { copyBtn.textContent = '📋 复制数据源链接'; copyBtn.classList.remove('success'); }, 1500);
+      } catch (e) { copyBtn.textContent = '❌ 失败'; setTimeout(() => { copyBtn.textContent = '📋 复制数据源链接'; }, 1500); }
+    });
+    switchTo('koi');
+  </script>
+</body>
+</html>
