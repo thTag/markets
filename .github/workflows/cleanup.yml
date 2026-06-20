@@ -18,8 +18,8 @@ jobs:
           token: ${{ github.token }}
           repository: ${{ github.repository }}
           retain_days: 7              # 只保留最近 7 天的记录
-          keep_minimum_runs: 3        # 每个 workflow 至少保留 3 条
+          keep_minimum_runs: 5        # 每个 workflow 至少保留 5 条
           # 可选：只针对特定 workflow，比如只清理 pull.yml 产生的记录
           # delete_workflow_pattern: "pull.yml|koi.yml|astr.yml|mai.yml"
           # 可选：先试运行看看效果，确认无误后再改为 false
-          dry_run: true
+          # dry_run: true
