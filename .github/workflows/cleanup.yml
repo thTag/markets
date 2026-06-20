@@ -1,0 +1,25 @@
+name: 清理旧的 Action 运行记录
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"   # 每周日凌晨 3 点自动运行
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: 删除旧的 workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 7              # 只保留最近 7 天的记录
+          keep_minimum_runs: 3        # 每个 workflow 至少保留 3 条
+          # 可选：只针对特定 workflow，比如只清理 pull.yml 产生的记录
+          # delete_workflow_pattern: "pull.yml|koi.yml|astr.yml|mai.yml"
+          # 可选：先试运行看看效果，确认无误后再改为 false
+          # dry_run: true
