@@ -22,4 +22,4 @@ jobs:
           # 可选：只针对特定 workflow，比如只清理 pull.yml 产生的记录
           # delete_workflow_pattern: "pull.yml|koi.yml|astr.yml|mai.yml"
           # 可选：先试运行看看效果，确认无误后再改为 false
-          # dry_run: true
+          dry_run: true
