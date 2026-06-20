@@ -53,10 +53,11 @@
   <button id="copyBtn" class="copy-btn">📋 复制数据源链接</button>
   <div class="wrap">
     <h1>插件市场</h1>
-    <p class="sub">Koi / Astr 插件统一浏览与搜索</p>
+    <p class="sub">Koi / Astr / Mai 插件统一浏览与搜索</p>   <!-- 修改：增加 Mai -->
     <div class="tabs">
       <button class="tab active" data-source="koi">Koi</button>
       <button class="tab" data-source="astr">Astr</button>
+      <button class="tab" data-source="mai">Mai</button>   <!-- 新增 -->
     </div>
     <input type="text" id="searchInput" class="search-box" placeholder="搜索插件名、作者、描述...">
     <div class="stats"><span id="count">插件数量：-</span></div>
@@ -67,10 +68,15 @@
   </div>
 
   <script>
-    const TAB_MAP = { koi: { url: './koi/flat.json' }, astr: { url: './astr/plugin_cache_original.json' } };
+    const TAB_MAP = {
+      koi: { url: './koi/flat.json' },
+      astr: { url: './astr/plugin_cache_original.json' },
+      mai: { url: './mai/flat.json' }   // 新增
+    };
     const COPY_MAP = {
       koi: 'https://markets.th-dd.top/koi/index.json',
-      astr: 'https://raw.githubusercontent.com/th-dd/markets/refs/heads/gh-pages/astr/plugin_cache_original.json'
+      astr: 'https://raw.githubusercontent.com/th-dd/markets/refs/heads/gh-pages/astr/plugin_cache_original.json',
+      mai: 'https://markets.th-dd.top/mai/flat.json'   // 新增，与 koi 域名风格统一
     };
     let cache = {}, active = 'koi', searchTerm = '', currentPage = 1;
     const PAGE_SIZE = 20;

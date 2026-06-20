@@ -18,10 +18,12 @@ jobs:
         run: |
           KOI_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/koi.yml" --jq '.id')
           ASTR_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/astr.yml" --jq '.id')
+          MAI_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/mai.yml" --jq '.id')
           DEPLOY_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/deploy.yml" --jq '.id')
           
           echo "koi_id=$KOI_ID" >> $GITHUB_OUTPUT
           echo "astr_id=$ASTR_ID" >> $GITHUB_OUTPUT
+          echo "mai_id=$MAI_ID" >> $GITHUB_OUTPUT
           echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
 
       - name: Trigger Pull Workflows
@@ -30,7 +32,8 @@ jobs:
         run: |
           gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.koi_id }}/dispatches" -f ref=main
           gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.astr_id }}/dispatches" -f ref=main
-          
+          gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.mai_id }}/dispatches" -f ref=main
+
           echo "已触发数据拉取，等待 10 秒进行初始化..."
           sleep 10
 
@@ -40,25 +43,27 @@ jobs:
         run: |
           KOI_ID="${{ steps.get_ids.outputs.koi_id }}"
           ASTR_ID="${{ steps.get_ids.outputs.astr_id }}"
-          
+          MAI_ID="${{ steps.get_ids.outputs.mai_id }}"
           echo "开始轮询运行状态..."
           while true; do
             # 获取最新的一条运行记录
             KOI_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
             ASTR_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
+            MAI_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
             
-            echo "Koi状态: $KOI_STATUS | Astr状态: $ASTR_STATUS"
+            echo "Koi状态: $KOI_STATUS | Astr状态: $ASTR_STATUS | Mai状态: $MAI_STATUS"
 
-            # 只要有一个还在跑，就继续等
-            if [[ "$KOI_STATUS" == "completed" && "$ASTR_STATUS" == "completed" ]]; then
+            # 等待所有三个任务都完成
+            if [[ "$KOI_STATUS" == "completed" && "$ASTR_STATUS" == "completed" && "$MAI_STATUS" == "completed" ]]; then
               KOI_CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
               ASTR_CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
+              MAI_CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
               
-              if [[ "$KOI_CONCLUSION" == "success" && "$ASTR_CONCLUSION" == "success" ]]; then
+              if [[ "$KOI_CONCLUSION" == "success" && "$ASTR_CONCLUSION" == "success" && "$MAI_CONCLUSION" == "success" ]]; then
                 echo "所有拉取任务执行成功！"
                 break
               else
-                echo "存在失败任务(Koi: $KOI_CONCLUSION, Astr: $ASTR_CONCLUSION)，终止部署。"
+                echo "存在失败任务(Koi: $KOI_CONCLUSION, Astr: $ASTR_CONCLUSION, Mai: $MAI_CONCLUSION)，终止部署。"
                 exit 1
               fi
             fi

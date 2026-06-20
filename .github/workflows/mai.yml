@@ -1,0 +1,41 @@
+name: 拉取 Mai 数据
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-mai:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Mai plugin market
+        run: |
+          mkdir -p mai
+          curl -fsSL "https://raw.githubusercontent.com/Mai-with-u/plugin-repo/main/plugin_details.json" -o "mai/plugin_details.json"
+
+      - name: Preprocess Mai Data
+        run: |
+          node -e "
+            const fs = require('fs');
+            const raw = JSON.parse(fs.readFileSync('mai/plugin_details.json', 'utf8'));
+            const all = Object.keys(raw).map(id => {
+              const item = raw[id];
+              return {
+                name: item.name || id,
+                description: item.description || '',
+                author: item.author?.name || '',
+                repo: item.repository_url || '',
+                tags: item.keywords || []
+              };
+            });
+            fs.writeFileSync('mai/flat.json', JSON.stringify(all));
+            console.log('清洗完成，共提取插件数量: ' + all.length);
+          "
+          env:
+            NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Upload Mai Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: mai-data
+          path: mai/
+          retention-days: 1

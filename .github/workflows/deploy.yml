@@ -17,19 +17,22 @@ jobs:
         uses: actions/checkout@v6
 
       # 2. 获取数据制品的 Run ID
-      - name: Resolve latest run-ids of koi & astr
+      - name: Resolve latest run-ids of koi & astr & mai
         id: runids
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           KOI_WF_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/koi.yml" --jq '.id')
           ASTR_WF_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/astr.yml" --jq '.id')
+          MAI_WF_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/mai.yml" --jq '.id')
 
           KOI_RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_WF_ID/runs?per_page=1" --jq '.workflow_runs[0].id')
           ASTR_RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_WF_ID/runs?per_page=1" --jq '.workflow_runs[0].id')
+          MAI_RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_WF_ID/runs?per_page=1" --jq '.workflow_runs[0].id')
 
           echo "koi_run_id=$KOI_RUN_ID" >> "$GITHUB_OUTPUT"
           echo "astr_run_id=$ASTR_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "mai_run_id=$MAI_RUN_ID" >> "$GITHUB_OUTPUT"
 
       # 3. 下载动态数据
       - name: Download Koi Data
@@ -49,6 +52,16 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           run-id: ${{ steps.runids.outputs.astr_run_id }}
+
+      # 新增 Mai 数据下载步骤
+      - name: Download Mai Data
+        uses: actions/download-artifact@v8
+        with:
+          name: mai-data
+          path: dist/mai
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.runids.outputs.mai_run_id }}
 
       # 4. 搬运静态文件到打包目录
       - name: Prepare static files
