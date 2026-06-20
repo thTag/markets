@@ -30,8 +30,8 @@ jobs:
             fs.writeFileSync('mai/flat.json', JSON.stringify(all));
             console.log('清洗完成，共提取插件数量: ' + all.length);
           "
-          env:
-            NODE_OPTIONS: "--max-old-space-size=4096"
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload Mai Artifact
         uses: actions/upload-artifact@v7
