@@ -17,14 +17,15 @@ jobs:
           node -e "
             const fs = require('fs');
             const raw = JSON.parse(fs.readFileSync('mai/plugin_details.json', 'utf8'));
-            const all = Object.keys(raw).map(id => {
-              const item = raw[id];
+            const all = raw.map(item => {
+              const m = item.manifest || {};
               return {
-                name: item.name || id,
-                description: item.description || '',
-                author: item.author?.name || '',
-                repo: item.repository_url || '',
-                tags: item.keywords || []
+                name: m.name || item.id || '',
+                description: m.description || '',
+                version: m.version || '',
+                author: typeof m.author === 'string' ? m.author : (m.author?.name || ''),
+                repo: m.urls?.repository || m.repository_url || m.repository || '',
+                tags: m.keywords || m.tags || []
               };
             });
             fs.writeFileSync('mai/flat.json', JSON.stringify(all));
