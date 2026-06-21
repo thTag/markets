@@ -41,7 +41,15 @@ jobs:
                 const tags = Array.isArray(pkg.keywords) ? pkg.keywords : [];
 
                 if (name) {
-                  all.push({ name, version, description, author, repo, tags });
+                  all.push({
+                    name,
+                    npm: name,
+                    version,
+                    description,
+                    author,
+                    repo,
+                    tags
+                  });
                 }
               }
             });
@@ -70,7 +78,15 @@ jobs:
                   const tags = Array.isArray(pkg.keywords) ? pkg.keywords : [];
 
                   if (name) {
-                    all.push({ name, version, description, author, repo, tags });
+                    all.push({
+                      name,
+                      npm: name,
+                      version,
+                      description,
+                      author,
+                      repo,
+                      tags
+                    });
                   }
                 });
               } else if (Array.isArray(namespace)) {
@@ -92,7 +108,15 @@ jobs:
                   const tags = Array.isArray(pkg.keywords) ? pkg.keywords : [];
 
                   if (name) {
-                    all.push({ name, version, description, author, repo, tags });
+                    all.push({
+                      name,
+                      npm: name,
+                      version,
+                      description,
+                      author,
+                      repo,
+                      tags
+                    });
                   }
                 });
               }
