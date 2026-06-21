@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>🧩 插件市场</title>
+  <title>插件市场</title>
   <style>
     /* ===================== 全局重置 & 主题变量 ===================== */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -107,8 +107,8 @@
       flex-wrap: wrap;
     }
 
-    /* 按钮样式 */
-    .copy-btn, .theme-toggle, .refresh-btn {
+    /* 按钮样式（无 emoji） */
+    .action-btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -122,17 +122,17 @@
       transition: var(--transition);
       box-shadow: var(--shadow);
     }
-    .copy-btn:hover, .theme-toggle:hover, .refresh-btn:hover {
+    .action-btn:hover {
       border-color: var(--accent);
       color: var(--accent);
       box-shadow: var(--shadow-hover);
     }
-    .copy-btn.success {
+    .action-btn.success {
       border-color: #22c55e;
       color: #22c55e;
     }
 
-    /* ===================== 控制栏（Tab + 搜索） ===================== */
+    /* ===================== 控制栏（Tab + 搜索 + 分页） ===================== */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -169,9 +169,10 @@
     [data-theme="dark"] .tab.active {
       box-shadow: 0 2px 8px rgba(245, 158, 11, 0.30);
     }
+
     .search-box {
-      flex: 1;
-      min-width: 200px;
+      flex: 0 1 240px;          /* 缩小搜索框 */
+      min-width: 140px;
       padding: 8px 16px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -191,11 +192,43 @@
     }
     .search-box::placeholder { color: var(--text-muted); }
 
+    /* 内联分页控件 */
+    .inline-pager {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      margin-left: auto;
+    }
+    .inline-pager .page-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+    .inline-pager .page-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .inline-pager .page-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .inline-pager .page-info {
+      padding: 0 6px;
+    }
+
     .stats {
       font-size: 0.9rem;
       color: var(--text-secondary);
-      margin-left: auto;
-      white-space: nowrap;
+      margin-left: 0;  /* 不再占据右侧，由分页控件替代 */
     }
 
     /* ===================== 插件网格 ===================== */
@@ -247,7 +280,6 @@
       margin-top: 2px;
       flex-shrink: 0;
       border: 1px solid var(--border);
-      /* 不再可点击，仅展示 */
     }
     .card-meta {
       display: flex;
@@ -296,81 +328,36 @@
     .card-footer {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
+      justify-content: flex-start; /* 左对齐 */
       align-items: center;
       margin-top: 6px;
       padding-top: 10px;
       border-top: 1px solid var(--border);
-      gap: 6px 12px;
+      gap: 8px;
     }
-    .card-footer .links {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .repo-link, .npm-link {
-      font-size: 0.85rem;
-      color: var(--accent);
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .repo-link:hover, .npm-link:hover {
-      text-decoration: none;
-      color: var(--accent-hover);
-    }
-    .repo-link::after {
-      content: "→";
-      transition: transform 0.2s;
+    .card-footer .link-btn {
       display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: var(--transition);
+      cursor: pointer;
+      text-decoration: none;
     }
-    .repo-link:hover::after { transform: translateX(4px); }
-    .npm-link::before {
-      content: "📦 ";
+    .card-footer .link-btn:hover {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
+      text-decoration: none;
     }
 
-    /* ===================== 分页 ===================== */
+    /* ===================== 底部完整分页（备用，但内联已提供，可以隐藏） ===================== */
     #pager {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin: 12px 0 20px;
-    }
-    .page-btn {
-      padding: 6px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--card-bg);
-      color: var(--text);
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: var(--transition);
-      box-shadow: var(--shadow);
-    }
-    .page-btn:hover:not(:disabled) {
-      border-color: var(--accent);
-      background: var(--accent-light);
-    }
-    .page-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-    .page-btn.active {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
-    }
-    [data-theme="dark"] .page-btn.active {
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
-    }
-    .page-dots {
-      color: var(--text-muted);
-      padding: 0 4px;
-      font-size: 0.9rem;
+      display: none; /* 隐藏底部旧分页，因为已内联到搜索栏 */
     }
 
     /* ===================== 状态提示 ===================== */
@@ -400,9 +387,11 @@
       .header-left h1 { font-size: 1.5rem; }
       .controls { flex-direction: column; align-items: stretch; }
       .tabs { justify-content: center; }
-      .stats { margin-left: 0; text-align: center; }
+      .search-box { flex: 1; }
+      .inline-pager { margin-left: 0; justify-content: center; }
+      .stats { text-align: center; }
       .grid { grid-template-columns: 1fr; gap: 14px; }
-      .copy-btn, .theme-toggle, .refresh-btn { justify-content: center; }
+      .action-btn { justify-content: center; }
     }
     @media (min-width: 769px) and (max-width: 1024px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
@@ -415,13 +404,13 @@
   <!-- ========== 头部 ========== -->
   <header class="header">
     <div class="header-left" id="logoReload" title="点击重新加载">
-      <h1>🧩 插件市场</h1>
+      <h1>插件市场</h1>
       <span class="badge">镜像</span>
     </div>
     <div class="header-actions">
-      <button id="refreshBtn" class="refresh-btn" title="刷新当前数据源">🔄</button>
-      <button id="themeToggle" class="theme-toggle">🌙 深色</button>
-      <button id="copyBtn" class="copy-btn">📋 复制数据源链接</button>
+      <button id="refreshBtn" class="action-btn">刷新</button>
+      <button id="themeToggle" class="action-btn">深色</button>
+      <button id="copyBtn" class="action-btn">复制链接</button>
     </div>
   </header>
 
@@ -432,13 +421,20 @@
       <button class="tab" data-source="astr">Astr</button>
       <button class="tab" data-source="mai">Mai</button>
     </div>
-    <input type="text" id="searchInput" class="search-box" placeholder="搜索插件名称、描述、作者…" />
+    <input type="text" id="searchInput" class="search-box" placeholder="搜索插件" />
     <span class="stats" id="count">共 0 个插件</span>
+
+    <!-- 内联分页控件 -->
+    <div class="inline-pager" id="inlinePager">
+      <button class="page-btn" id="prevPageBtn" disabled>上一页</button>
+      <span class="page-info" id="pageInfo">1 / 1</span>
+      <button class="page-btn" id="nextPageBtn" disabled>下一页</button>
+    </div>
   </div>
 
   <!-- ========== 插件网格 ========== -->
   <div class="grid" id="grid"></div>
-  <div id="pager"></div>
+  <div id="pager"></div> <!-- 旧分页容器，已隐藏 -->
   <div id="status" class="status loading">正在加载数据…</div>
 
   <!-- ========== 页脚 ========== -->
@@ -464,7 +460,6 @@
     const grid = document.getElementById('grid');
     const statusEl = document.getElementById('status');
     const countEl = document.getElementById('count');
-    const pagerEl = document.getElementById('pager');
     const searchInput = document.getElementById('searchInput');
     const tabs = document.querySelectorAll('.tab');
     const copyBtn = document.getElementById('copyBtn');
@@ -472,11 +467,18 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const themeToggle = document.getElementById('themeToggle');
 
+    // 内联分页元素
+    const inlinePager = document.getElementById('inlinePager');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('pageInfo');
+
     // ===================== 状态 =====================
     let cache = {};
     let active = 'koi';
     let searchTerm = '';
     let currentPage = 1;
+    let totalPages = 1;
 
     // ===================== 主题切换 =====================
     function getPreferredTheme() {
@@ -488,7 +490,7 @@
     function setTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('theme', theme);
-      themeToggle.textContent = theme === 'dark' ? '☀️ 浅色' : '🌙 深色';
+      themeToggle.textContent = theme === 'dark' ? '浅色' : '深色';
     }
 
     function toggleTheme() {
@@ -523,14 +525,12 @@
 
     /**
      * 生成 npm 链接（仅用于 Koi）
-     * 优先使用 item.npm，否则拼接
      */
     function getNpmUrl(item, source) {
       if (source !== 'koi') return null;
       if (item.npm) {
         return `https://www.npmjs.com/package/${item.npm}`;
       }
-      // 后备拼接
       const name = item.name || item.display_name || '';
       if (name && name !== '未命名') {
         const slug = name
@@ -563,9 +563,19 @@
       });
     }
 
+    function updatePagerControls() {
+      if (totalPages <= 1) {
+        inlinePager.style.display = 'none';
+        return;
+      }
+      inlinePager.style.display = 'flex';
+      pageInfo.textContent = `${currentPage} / ${totalPages}`;
+      prevPageBtn.disabled = (currentPage === 1);
+      nextPageBtn.disabled = (currentPage === totalPages);
+    }
+
     function render() {
       grid.innerHTML = '';
-      pagerEl.innerHTML = '';
       statusEl.textContent = '';
       statusEl.className = 'status';
 
@@ -581,11 +591,11 @@
 
       if (filtered.length === 0) {
         statusEl.className = 'status';
-        statusEl.textContent = '😕 没有找到匹配的插件，试试其他关键词';
+        statusEl.textContent = '没有找到匹配的插件';
         return;
       }
 
-      const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+      totalPages = Math.ceil(filtered.length / PAGE_SIZE);
       if (currentPage > totalPages) currentPage = totalPages;
       const start = (currentPage - 1) * PAGE_SIZE;
       const pageData = filtered.slice(start, start + PAGE_SIZE);
@@ -611,7 +621,7 @@
             ${version ? `<span class="card-version">v${esc(version)}</span>` : ''}
           </div>
           <div class="card-meta">
-            ${author ? `<span>👤 ${esc(author)}</span>` : ''}
+            ${author ? `<span>作者 ${esc(author)}</span>` : ''}
             <span class="source">${esc(sourceLabel)}</span>
           </div>
           ${description ? `<div class="card-desc">${esc(description)}</div>` : ''}
@@ -621,58 +631,41 @@
           html += `<div class="card-tags">${tags.map(t => `<span class="tag">#${esc(t)}</span>`).join('')}</div>`;
         }
 
-        html += `<div class="card-footer"><div class="links">`;
+        html += `<div class="card-footer">`;
         if (repo) {
-          html += `<a href="${esc(repo)}" target="_blank" rel="noopener noreferrer" class="repo-link">查看源码</a>`;
+          html += `<a href="${esc(repo)}" target="_blank" rel="noopener noreferrer" class="link-btn">源码</a>`;
         }
         if (npmUrl) {
-          html += `<a href="${esc(npmUrl)}" target="_blank" rel="noopener noreferrer" class="npm-link">npm</a>`;
+          html += `<a href="${esc(npmUrl)}" target="_blank" rel="noopener noreferrer" class="link-btn">npm</a>`;
         }
-        html += `</div></div>`;
+        html += `</div>`;
 
         card.innerHTML = html;
         grid.appendChild(card);
       });
 
-      if (totalPages > 1) {
-        pagerEl.style.display = 'flex';
-        let buttons = '';
-        buttons += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
-
-        const range = 2;
-        for (let i = 1; i <= totalPages; i++) {
-          if (i === 1 || i === totalPages || (i >= currentPage - range && i <= currentPage + range)) {
-            buttons += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
-          } else if (i === currentPage - range - 1 || i === currentPage + range + 1) {
-            buttons += `<span class="page-dots">…</span>`;
-          }
-        }
-
-        buttons += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
-        pagerEl.innerHTML = buttons;
-      } else {
-        pagerEl.style.display = 'none';
-      }
+      updatePagerControls();
     }
 
-    window.goToPage = function(page) {
-      const filtered = getFilteredData();
-      const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    // ===================== 分页操作 =====================
+    function goToPage(page) {
       if (page < 1 || page > totalPages) return;
       currentPage = page;
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    }
 
-    // ===================== 切换数据源（支持强制刷新） =====================
+    prevPageBtn.addEventListener('click', () => goToPage(currentPage - 1));
+    nextPageBtn.addEventListener('click', () => goToPage(currentPage + 1));
+
+    // 暴露给全局用于其他调用（可选）
+    window.goToPage = goToPage;
+
+    // ===================== 切换数据源 =====================
     window.switchTo = async function(source, force = false) {
-      if (force) {
-        // 强制刷新：清空缓存
-        delete cache[source];
-      }
+      if (force) delete cache[source];
 
       if (source === active && cache[source] && !force) {
-        // 已加载且不强制刷新，直接渲染
         active = source;
         tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.source === source));
         currentPage = 1;
@@ -689,7 +682,6 @@
       statusEl.className = 'status loading';
       statusEl.textContent = '正在加载数据…';
       grid.innerHTML = '';
-      pagerEl.innerHTML = '';
 
       try {
         if (!cache[source]) {
@@ -702,23 +694,20 @@
         render();
       } catch (err) {
         statusEl.className = 'status error';
-        statusEl.textContent = `❌ 加载失败：${err.message}`;
+        statusEl.textContent = `加载失败：${err.message}`;
       }
     };
 
     // ===================== 事件绑定 =====================
 
-    // Logo 点击刷新
     logoReload.addEventListener('click', function() {
       switchTo(active, true);
     });
 
-    // 刷新按钮
     refreshBtn.addEventListener('click', function() {
       switchTo(active, true);
     });
 
-    // Tab 切换
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const source = tab.dataset.source;
@@ -728,7 +717,6 @@
       });
     });
 
-    // 搜索防抖
     let searchTimer = null;
     searchInput.addEventListener('input', (e) => {
       clearTimeout(searchTimer);
@@ -739,25 +727,24 @@
       }, 250);
     });
 
-    // 复制链接
     copyBtn.addEventListener('click', async () => {
       const url = COPY_MAP[active] || '';
       if (!url) {
-        copyBtn.textContent = '❌ 无链接';
-        setTimeout(() => { copyBtn.innerHTML = '📋 复制数据源链接'; }, 1500);
+        copyBtn.textContent = '无链接';
+        setTimeout(() => { copyBtn.textContent = '复制链接'; }, 1500);
         return;
       }
       try {
         await navigator.clipboard.writeText(url);
-        copyBtn.textContent = '✅ 已复制';
+        copyBtn.textContent = '已复制';
         copyBtn.classList.add('success');
         setTimeout(() => {
-          copyBtn.textContent = '📋 复制数据源链接';
+          copyBtn.textContent = '复制链接';
           copyBtn.classList.remove('success');
         }, 1500);
       } catch {
-        copyBtn.textContent = '❌ 失败';
-        setTimeout(() => { copyBtn.textContent = '📋 复制数据源链接'; }, 1500);
+        copyBtn.textContent = '失败';
+        setTimeout(() => { copyBtn.textContent = '复制链接'; }, 1500);
       }
     });
 
