@@ -288,11 +288,42 @@
       box-shadow: var(--shadow-hover);
       transform: translateY(-3px);
     }
+
+    /* ===================== 卡片头部（含 Logo） ===================== */
     .card-header {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
+    }
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .plugin-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+    .plugin-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
     }
     .card-name {
       font-size: 1.05rem;
@@ -313,6 +344,7 @@
       flex-shrink: 0;
       border: 1px solid var(--border);
     }
+
     .card-meta {
       display: flex;
       flex-wrap: wrap;
@@ -430,7 +462,7 @@
 <div class="container">
   <!-- ========== 头部 ========== -->
   <header class="header">
-    <div class="header-left" id="logoReload" title="点击重新加载">
+    <div class="header-left" id="logoReload" title="点击刷新整个页面">
       <h1>插件市场</h1>
       <span class="badge">镜像</span>
     </div>
@@ -586,6 +618,45 @@
       return url.replace(/\.git$/, '');
     }
 
+    // ===================== Logo 相关函数 =====================
+
+    /**
+     * 获取插件 Logo URL
+     * - Astr: 直接使用 item.logo
+     * - Koi: 从 npm CDN 获取
+     * - Mai: 返回 null（使用 fallback avatar）
+     */
+    function getPluginLogo(item, source) {
+      if (source === 'astr' && item.logo) {
+        return item.logo;
+      }
+      if (source === 'koi') {
+        const pkgName = item.npm || item.name || '';
+        if (pkgName) {
+          let fullName = pkgName;
+          if (!pkgName.startsWith('koishi-plugin-') && !pkgName.startsWith('@')) {
+            fullName = `koishi-plugin-${pkgName}`;
+          }
+          return `https://cdn.jsdelivr.net/npm/${fullName}/logo.png`;
+        }
+      }
+      return null;
+    }
+
+    /**
+     * 生成首字母 Avatar（fallback）
+     */
+    function getInitialAvatar(name, source) {
+      const colors = {
+        koi: '#6366f1',
+        astr: '#f59e0b',
+        mai: '#10b981'
+      };
+      const initial = (name || '?').charAt(0).toUpperCase();
+      const color = colors[source] || '#6366f1';
+      return { initial, color };
+    }
+
     // ===================== 过滤 & 渲染 =====================
     function getFilteredData() {
       const arr = getArray(cache[active] || []);
@@ -660,9 +731,63 @@
 
         const npmUrl = getNpmUrl(item, active);
 
+        // ---- Logo 处理 ----
+        const logoUrl = getPluginLogo(item, active);
+        const { initial, color } = getInitialAvatar(name, active);
+
+        let logoHtml = '';
+        if (logoUrl) {
+          logoHtml = `<img src="${esc(logoUrl)}" alt="${esc(name)}" class="plugin-logo" onerror="this.style.display='none'" />`;
+        }
+        // 如果 logoUrl 为空，或者图片加载失败（onerror 隐藏后），显示 avatar
+        // 注意：如果 logoUrl 存在但加载失败，onerror 会隐藏 img，但不会自动显示 avatar。
+        // 更健壮的做法：用 div 包裹，img 隐藏时显示 avatar（通过 CSS）。
+        // 但为简化，我们直接判断：如果有 logoUrl，先显示 img；否则显示 avatar。
+        // 但 img 加载失败时，我们通过 onerror 将 img 隐藏，并显示后面的 avatar。
+        // 但这里 img 和 avatar 是平级的，img 隐藏后 avatar 会顶上去。
+        // 更好的方式：使用同一个容器，用 JS 控制显示哪个。
+        // 这里使用简化的方式：先渲染 img，再渲染 avatar，并用 CSS 控制。
+
+        // 我们使用一个容器来同时包含 img 和 avatar，通过 CSS 控制显示。
+        // 但为了代码简单，采用以下方式：
+        // 如果有 logoUrl，渲染 img（带 onerror 自动隐藏），不渲染 avatar。
+        // 如果没有 logoUrl，直接渲染 avatar。
+        // 但 img 加载失败时 onerror 只能隐藏自身，无法显示 avatar。
+        // 所以采用更可靠的方式：在 onerror 中替换当前元素为 avatar。
+        // 但更好的办法是直接两个都放，用样式控制。
+
+        // 我选择：用一个包装器，内部先放 img，再放 avatar，img 加载失败时隐藏自身，avatar 默认显示（但被 img 覆盖）。
+        // 当 img 存在且加载成功时，img 显示，avatar 不显示。
+        // 当 img 不存在或加载失败时，img 隐藏，avatar 显示。
+        // 实现：img 和 avatar 都渲染，但 img 加载成功时会覆盖 avatar（通过 position: absolute 或 flex 叠加）。
+        // 使用更简洁的方法：只渲染一个，由 JS 决定。
+        // 最终采用：有 logoUrl 就渲染 img（onerror 时替换为 avatar），否则直接渲染 avatar。
+
+        // 为了更稳健，我直接在 onerror 中替换父容器内容。
+        // 或者干脆两个都渲染，用 css 控制显示。
+
+        // 简化：使用一个容器，用 js 判断。
+        let logoDisplayHtml = '';
+        if (logoUrl) {
+          // 渲染 img，同时准备一个备用的 avatar（如果 img 加载失败，通过 onerror 替换）
+          // 更简洁的做法：onerror 时替换 img 为 avatar 文本。
+          // 但为了 DOM 操作方便，直接采用两个元素，用 display 控制。
+          logoDisplayHtml = `
+            <div class="plugin-logo-wrapper" style="position:relative;width:40px;height:40px;flex-shrink:0;">
+              <img src="${esc(logoUrl)}" alt="${esc(name)}" class="plugin-logo" style="position:absolute;top:0;left:0;width:100%;height:100%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <span class="plugin-avatar" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;background-color:${color};border:1px solid var(--border);">${esc(initial)}</span>
+            </div>
+          `;
+        } else {
+          logoDisplayHtml = `<span class="plugin-avatar" style="background-color:${color}">${esc(initial)}</span>`;
+        }
+
         let html = `
           <div class="card-header">
-            <span class="card-name">${esc(name)}</span>
+            <div class="card-header-left">
+              ${logoDisplayHtml}
+              <span class="card-name">${esc(name)}</span>
+            </div>
             ${version ? `<span class="card-version">v${esc(version)}</span>` : ''}
           </div>
           <div class="card-meta">
@@ -749,10 +874,12 @@
 
     // ===================== 事件绑定 =====================
 
+    // 左上角点击 -> 刷新整个页面
     logoReload.addEventListener('click', function() {
-      switchTo(active, true);
+      location.reload();
     });
 
+    // 刷新按钮 -> 刷新当前数据源（清缓存重载）
     refreshBtn.addEventListener('click', function() {
       switchTo(active, true);
     });
