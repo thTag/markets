@@ -68,6 +68,7 @@ jobs:
         run: |
           cp index.html dist/
           cp CNAME dist/
+          cp favicon.ico dist/
           touch dist/.nojekyll
 
       # 5. 部署（开启 force_orphan 确保每次都是干净的孤儿提交）
