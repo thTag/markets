@@ -107,7 +107,6 @@
       flex-wrap: wrap;
     }
 
-    /* 按钮样式（无 emoji） */
     .action-btn {
       display: inline-flex;
       align-items: center;
@@ -132,7 +131,7 @@
       color: #22c55e;
     }
 
-    /* ===================== 控制栏（Tab + 搜索 + 分页） ===================== */
+    /* ===================== 控制栏 ===================== */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -171,7 +170,7 @@
     }
 
     .search-box {
-      flex: 0 1 240px;          /* 缩小搜索框 */
+      flex: 0 1 240px;
       min-width: 140px;
       padding: 8px 16px;
       border-radius: 10px;
@@ -192,7 +191,46 @@
     }
     .search-box::placeholder { color: var(--text-muted); }
 
-    /* 内联分页控件 */
+    .stats {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-left: 0;
+    }
+
+    /* ===================== 分页控件（上下共用） ===================== */
+    .pager-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin: 12px 0 20px;
+    }
+    .pager-wrapper .page-btn {
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+    .pager-wrapper .page-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .pager-wrapper .page-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .pager-wrapper .page-info {
+      padding: 0 8px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    /* 顶部分页嵌入控制栏右侧 */
     .inline-pager {
       display: flex;
       align-items: center;
@@ -223,12 +261,6 @@
     }
     .inline-pager .page-info {
       padding: 0 6px;
-    }
-
-    .stats {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      margin-left: 0;  /* 不再占据右侧，由分页控件替代 */
     }
 
     /* ===================== 插件网格 ===================== */
@@ -328,7 +360,7 @@
     .card-footer {
       display: flex;
       flex-wrap: wrap;
-      justify-content: flex-start; /* 左对齐 */
+      justify-content: flex-start;
       align-items: center;
       margin-top: 6px;
       padding-top: 10px;
@@ -353,11 +385,6 @@
       border-color: var(--accent);
       color: var(--accent);
       text-decoration: none;
-    }
-
-    /* ===================== 底部完整分页（备用，但内联已提供，可以隐藏） ===================== */
-    #pager {
-      display: none; /* 隐藏底部旧分页，因为已内联到搜索栏 */
     }
 
     /* ===================== 状态提示 ===================== */
@@ -414,7 +441,7 @@
     </div>
   </header>
 
-  <!-- ========== 控制栏 ========== -->
+  <!-- ========== 控制栏（含顶部分页） ========== -->
   <div class="controls">
     <div class="tabs" id="tabContainer">
       <button class="tab active" data-source="koi">Koi</button>
@@ -424,18 +451,24 @@
     <input type="text" id="searchInput" class="search-box" placeholder="搜索插件" />
     <span class="stats" id="count">共 0 个插件</span>
 
-    <!-- 内联分页控件 -->
-    <div class="inline-pager" id="inlinePager">
-      <button class="page-btn" id="prevPageBtn" disabled>上一页</button>
-      <span class="page-info" id="pageInfo">1 / 1</span>
-      <button class="page-btn" id="nextPageBtn" disabled>下一页</button>
+    <!-- 顶部分页控件 -->
+    <div class="inline-pager" id="topPager">
+      <button class="page-btn" id="topPrevBtn" disabled>上一页</button>
+      <span class="page-info" id="topPageInfo">1 / 1</span>
+      <button class="page-btn" id="topNextBtn" disabled>下一页</button>
     </div>
   </div>
 
   <!-- ========== 插件网格 ========== -->
   <div class="grid" id="grid"></div>
-  <div id="pager"></div> <!-- 旧分页容器，已隐藏 -->
   <div id="status" class="status loading">正在加载数据…</div>
+
+  <!-- ========== 底部分页控件 ========== -->
+  <div class="pager-wrapper" id="bottomPager">
+    <button class="page-btn" id="bottomPrevBtn" disabled>上一页</button>
+    <span class="page-info" id="bottomPageInfo">1 / 1</span>
+    <button class="page-btn" id="bottomNextBtn" disabled>下一页</button>
+  </div>
 
   <!-- ========== 页脚 ========== -->
   <div class="footer">数据来自上游官方仓库，仅供镜像与检索使用。</div>
@@ -467,11 +500,17 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const themeToggle = document.getElementById('themeToggle');
 
-    // 内联分页元素
-    const inlinePager = document.getElementById('inlinePager');
-    const prevPageBtn = document.getElementById('prevPageBtn');
-    const nextPageBtn = document.getElementById('nextPageBtn');
-    const pageInfo = document.getElementById('pageInfo');
+    // 顶部分页
+    const topPager = document.getElementById('topPager');
+    const topPrevBtn = document.getElementById('topPrevBtn');
+    const topNextBtn = document.getElementById('topNextBtn');
+    const topPageInfo = document.getElementById('topPageInfo');
+
+    // 底部分页
+    const bottomPager = document.getElementById('bottomPager');
+    const bottomPrevBtn = document.getElementById('bottomPrevBtn');
+    const bottomNextBtn = document.getElementById('bottomNextBtn');
+    const bottomPageInfo = document.getElementById('bottomPageInfo');
 
     // ===================== 状态 =====================
     let cache = {};
@@ -523,9 +562,6 @@
       return [];
     }
 
-    /**
-     * 生成 npm 链接（仅用于 Koi）
-     */
     function getNpmUrl(item, source) {
       if (source !== 'koi') return null;
       if (item.npm) {
@@ -563,15 +599,24 @@
       });
     }
 
-    function updatePagerControls() {
-      if (totalPages <= 1) {
-        inlinePager.style.display = 'none';
-        return;
+    /**
+     * 更新所有分页控件的状态（顶部+底部）
+     */
+    function updateAllPagers() {
+      const show = totalPages > 1;
+      [topPager, bottomPager].forEach(el => {
+        el.style.display = show ? 'flex' : 'none';
+      });
+      if (show) {
+        const infoText = `${currentPage} / ${totalPages}`;
+        topPageInfo.textContent = infoText;
+        bottomPageInfo.textContent = infoText;
+
+        topPrevBtn.disabled = (currentPage === 1);
+        topNextBtn.disabled = (currentPage === totalPages);
+        bottomPrevBtn.disabled = (currentPage === 1);
+        bottomNextBtn.disabled = (currentPage === totalPages);
       }
-      inlinePager.style.display = 'flex';
-      pageInfo.textContent = `${currentPage} / ${totalPages}`;
-      prevPageBtn.disabled = (currentPage === 1);
-      nextPageBtn.disabled = (currentPage === totalPages);
     }
 
     function render() {
@@ -644,7 +689,7 @@
         grid.appendChild(card);
       });
 
-      updatePagerControls();
+      updateAllPagers();
     }
 
     // ===================== 分页操作 =====================
@@ -655,10 +700,14 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    prevPageBtn.addEventListener('click', () => goToPage(currentPage - 1));
-    nextPageBtn.addEventListener('click', () => goToPage(currentPage + 1));
+    // 顶部按钮绑定
+    topPrevBtn.addEventListener('click', () => goToPage(currentPage - 1));
+    topNextBtn.addEventListener('click', () => goToPage(currentPage + 1));
 
-    // 暴露给全局用于其他调用（可选）
+    // 底部按钮绑定
+    bottomPrevBtn.addEventListener('click', () => goToPage(currentPage - 1));
+    bottomNextBtn.addEventListener('click', () => goToPage(currentPage + 1));
+
     window.goToPage = goToPage;
 
     // ===================== 切换数据源 =====================
