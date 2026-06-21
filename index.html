@@ -16,18 +16,21 @@
       --text-secondary: #475569;
       --text-muted: #94a3b8;
       --border: #e2e8f0;
-      --accent: #6366f1;
-      --accent-hover: #4f46e5;
-      --accent-light: #eef2ff;
-      --accent-grad-start: #6366f1;
-      --accent-grad-end: #8b5cf6;
       --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
       --shadow-hover: 0 8px 30px rgba(0,0,0,0.10);
       --radius: 12px;
       --transition: 0.2s ease;
+
+      /* 数据源独立颜色（不随主题变化） */
+      --color-koi: #8b5cf6;
+      --color-koi-light: #ede9fe;
+      --color-astr: #3b82f6;
+      --color-astr-light: #dbeafe;
+      --color-mai: #f97316;
+      --color-mai-light: #ffedd5;
     }
 
-    /* 深色模式（暖色系） */
+    /* 深色模式 */
     [data-theme="dark"] {
       --bg: #121212;
       --card-bg: #1e1e1e;
@@ -35,13 +38,12 @@
       --text-secondary: #b0b0b0;
       --text-muted: #7a7a7a;
       --border: #333333;
-      --accent: #f59e0b;
-      --accent-hover: #d97706;
-      --accent-light: #2d2a1a;
-      --accent-grad-start: #f59e0b;
-      --accent-grad-end: #f97316;
       --shadow: 0 1px 3px rgba(0,0,0,0.4);
       --shadow-hover: 0 8px 30px rgba(0,0,0,0.6);
+      /* 深色模式下数据源颜色略微调亮，保持可读性 */
+      --color-koi: #a78bfa;
+      --color-astr: #60a5fa;
+      --color-mai: #fb923c;
     }
 
     body {
@@ -52,7 +54,7 @@
       padding: 0 16px 40px;
       transition: background 0.3s, color 0.3s;
     }
-    a { color: var(--accent); text-decoration: none; }
+    a { color: var(--text-secondary); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     /* ===================== 布局容器 ===================== */
@@ -84,20 +86,19 @@
       font-size: 1.8rem;
       font-weight: 700;
       letter-spacing: -0.02em;
-      background: linear-gradient(135deg, var(--accent-grad-start), var(--accent-grad-end));
+      background: linear-gradient(135deg, var(--color-koi), var(--color-astr));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      transition: background 0.3s;
     }
     .header-left .badge {
       font-size: 0.7rem;
-      background: var(--accent-light);
-      color: var(--accent);
+      background: var(--color-koi-light);
+      color: var(--color-koi);
       padding: 2px 10px;
       border-radius: 999px;
       font-weight: 500;
-      -webkit-text-fill-color: var(--accent);
+      -webkit-text-fill-color: var(--color-koi);
       border: 1px solid var(--border);
     }
     .header-actions {
@@ -122,8 +123,8 @@
       box-shadow: var(--shadow);
     }
     .action-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
+      border-color: var(--color-koi);
+      color: var(--color-koi);
       box-shadow: var(--shadow-hover);
     }
     .action-btn.success {
@@ -160,13 +161,22 @@
       transition: var(--transition);
     }
     .tab:hover { color: var(--text); }
-    .tab.active {
-      background: var(--accent);
+
+    /* 每个 Tab 激活时使用对应的主题色 */
+    .tab[data-source="koi"].active {
+      background: var(--color-koi);
       color: #fff;
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.30);
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
     }
-    [data-theme="dark"] .tab.active {
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.30);
+    .tab[data-source="astr"].active {
+      background: var(--color-astr);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+    }
+    .tab[data-source="mai"].active {
+      background: var(--color-mai);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);
     }
 
     .search-box {
@@ -183,11 +193,8 @@
       box-shadow: var(--shadow);
     }
     .search-box:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-    [data-theme="dark"] .search-box:focus {
-      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+      border-color: var(--color-koi);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
     }
     .search-box::placeholder { color: var(--text-muted); }
 
@@ -217,8 +224,9 @@
       box-shadow: var(--shadow);
     }
     .pager-wrapper .page-btn:hover:not(:disabled) {
-      border-color: var(--accent);
-      background: var(--accent-light);
+      border-color: var(--color-koi);
+      background: var(--color-koi-light);
+      color: var(--color-koi);
     }
     .pager-wrapper .page-btn:disabled {
       opacity: 0.4;
@@ -230,7 +238,6 @@
       color: var(--text-secondary);
     }
 
-    /* 顶部分页嵌入控制栏右侧 */
     .inline-pager {
       display: flex;
       align-items: center;
@@ -252,8 +259,9 @@
       box-shadow: var(--shadow);
     }
     .inline-pager .page-btn:hover:not(:disabled) {
-      border-color: var(--accent);
-      background: var(--accent-light);
+      border-color: var(--color-koi);
+      background: var(--color-koi-light);
+      color: var(--color-koi);
     }
     .inline-pager .page-btn:disabled {
       opacity: 0.4;
@@ -289,7 +297,6 @@
       transform: translateY(-3px);
     }
 
-    /* ===================== 卡片头部（含 Logo） ===================== */
     .card-header {
       display: flex;
       align-items: flex-start;
@@ -353,18 +360,33 @@
       font-size: 0.85rem;
       color: var(--text-secondary);
     }
+    /* 数据源标签 - 使用各自的主题色 */
     .card-meta .source {
       display: inline-block;
       font-size: 0.65rem;
       font-weight: 600;
-      padding: 0 8px;
+      padding: 0 10px;
       border-radius: 999px;
-      background: var(--accent-light);
-      color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 0.3px;
-      border: 1px solid var(--border);
+      border: 1px solid transparent;
     }
+    .card-meta .source[data-source="koi"] {
+      background: var(--color-koi-light);
+      color: var(--color-koi);
+      border-color: var(--color-koi);
+    }
+    .card-meta .source[data-source="astr"] {
+      background: var(--color-astr-light);
+      color: var(--color-astr);
+      border-color: var(--color-astr);
+    }
+    .card-meta .source[data-source="mai"] {
+      background: var(--color-mai-light);
+      color: var(--color-mai);
+      border-color: var(--color-mai);
+    }
+
     .card-desc {
       font-size: 0.9rem;
       color: var(--text-secondary);
@@ -413,9 +435,9 @@
       text-decoration: none;
     }
     .card-footer .link-btn:hover {
-      background: var(--accent-light);
-      border-color: var(--accent);
-      color: var(--accent);
+      background: var(--color-koi-light);
+      border-color: var(--color-koi);
+      color: var(--color-koi);
       text-decoration: none;
     }
 
@@ -521,6 +543,13 @@
     };
     const PAGE_SIZE = 20;
 
+    // ===================== 数据源颜色配置 =====================
+    const SOURCE_COLORS = {
+      koi: { bg: '#8b5cf6', light: '#ede9fe', label: 'Koi' },
+      astr: { bg: '#3b82f6', light: '#dbeafe', label: 'Astr' },
+      mai: { bg: '#f97316', light: '#ffedd5', label: 'Mai' }
+    };
+
     // ===================== DOM 引用 =====================
     const grid = document.getElementById('grid');
     const statusEl = document.getElementById('status');
@@ -532,13 +561,11 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const themeToggle = document.getElementById('themeToggle');
 
-    // 顶部分页
     const topPager = document.getElementById('topPager');
     const topPrevBtn = document.getElementById('topPrevBtn');
     const topNextBtn = document.getElementById('topNextBtn');
     const topPageInfo = document.getElementById('topPageInfo');
 
-    // 底部分页
     const bottomPager = document.getElementById('bottomPager');
     const bottomPrevBtn = document.getElementById('bottomPrevBtn');
     const bottomNextBtn = document.getElementById('bottomNextBtn');
@@ -619,13 +646,6 @@
     }
 
     // ===================== Logo 相关函数 =====================
-
-    /**
-     * 获取插件 Logo URL
-     * - Astr: 直接使用 item.logo
-     * - Koi: 从 npm CDN 获取
-     * - Mai: 返回 null（使用 fallback avatar）
-     */
     function getPluginLogo(item, source) {
       if (source === 'astr' && item.logo) {
         return item.logo;
@@ -643,17 +663,14 @@
       return null;
     }
 
-    /**
-     * 生成首字母 Avatar（fallback）
-     */
     function getInitialAvatar(name, source) {
-      const colors = {
-        koi: '#6366f1',
-        astr: '#f59e0b',
-        mai: '#10b981'
+      const colorMap = {
+        koi: '#8b5cf6',
+        astr: '#3b82f6',
+        mai: '#f97316'
       };
       const initial = (name || '?').charAt(0).toUpperCase();
-      const color = colors[source] || '#6366f1';
+      const color = colorMap[source] || '#8b5cf6';
       return { initial, color };
     }
 
@@ -670,9 +687,6 @@
       });
     }
 
-    /**
-     * 更新所有分页控件的状态（顶部+底部）
-     */
     function updateAllPagers() {
       const show = totalPages > 1;
       [topPager, bottomPager].forEach(el => {
@@ -731,47 +745,12 @@
 
         const npmUrl = getNpmUrl(item, active);
 
-        // ---- Logo 处理 ----
+        // Logo
         const logoUrl = getPluginLogo(item, active);
         const { initial, color } = getInitialAvatar(name, active);
 
-        let logoHtml = '';
-        if (logoUrl) {
-          logoHtml = `<img src="${esc(logoUrl)}" alt="${esc(name)}" class="plugin-logo" onerror="this.style.display='none'" />`;
-        }
-        // 如果 logoUrl 为空，或者图片加载失败（onerror 隐藏后），显示 avatar
-        // 注意：如果 logoUrl 存在但加载失败，onerror 会隐藏 img，但不会自动显示 avatar。
-        // 更健壮的做法：用 div 包裹，img 隐藏时显示 avatar（通过 CSS）。
-        // 但为简化，我们直接判断：如果有 logoUrl，先显示 img；否则显示 avatar。
-        // 但 img 加载失败时，我们通过 onerror 将 img 隐藏，并显示后面的 avatar。
-        // 但这里 img 和 avatar 是平级的，img 隐藏后 avatar 会顶上去。
-        // 更好的方式：使用同一个容器，用 JS 控制显示哪个。
-        // 这里使用简化的方式：先渲染 img，再渲染 avatar，并用 CSS 控制。
-
-        // 我们使用一个容器来同时包含 img 和 avatar，通过 CSS 控制显示。
-        // 但为了代码简单，采用以下方式：
-        // 如果有 logoUrl，渲染 img（带 onerror 自动隐藏），不渲染 avatar。
-        // 如果没有 logoUrl，直接渲染 avatar。
-        // 但 img 加载失败时 onerror 只能隐藏自身，无法显示 avatar。
-        // 所以采用更可靠的方式：在 onerror 中替换当前元素为 avatar。
-        // 但更好的办法是直接两个都放，用样式控制。
-
-        // 我选择：用一个包装器，内部先放 img，再放 avatar，img 加载失败时隐藏自身，avatar 默认显示（但被 img 覆盖）。
-        // 当 img 存在且加载成功时，img 显示，avatar 不显示。
-        // 当 img 不存在或加载失败时，img 隐藏，avatar 显示。
-        // 实现：img 和 avatar 都渲染，但 img 加载成功时会覆盖 avatar（通过 position: absolute 或 flex 叠加）。
-        // 使用更简洁的方法：只渲染一个，由 JS 决定。
-        // 最终采用：有 logoUrl 就渲染 img（onerror 时替换为 avatar），否则直接渲染 avatar。
-
-        // 为了更稳健，我直接在 onerror 中替换父容器内容。
-        // 或者干脆两个都渲染，用 css 控制显示。
-
-        // 简化：使用一个容器，用 js 判断。
         let logoDisplayHtml = '';
         if (logoUrl) {
-          // 渲染 img，同时准备一个备用的 avatar（如果 img 加载失败，通过 onerror 替换）
-          // 更简洁的做法：onerror 时替换 img 为 avatar 文本。
-          // 但为了 DOM 操作方便，直接采用两个元素，用 display 控制。
           logoDisplayHtml = `
             <div class="plugin-logo-wrapper" style="position:relative;width:40px;height:40px;flex-shrink:0;">
               <img src="${esc(logoUrl)}" alt="${esc(name)}" class="plugin-logo" style="position:absolute;top:0;left:0;width:100%;height:100%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
@@ -782,6 +761,7 @@
           logoDisplayHtml = `<span class="plugin-avatar" style="background-color:${color}">${esc(initial)}</span>`;
         }
 
+        // 数据源标签带 data-source 属性
         let html = `
           <div class="card-header">
             <div class="card-header-left">
@@ -792,7 +772,7 @@
           </div>
           <div class="card-meta">
             ${author ? `<span>作者 ${esc(author)}</span>` : ''}
-            <span class="source">${esc(sourceLabel)}</span>
+            <span class="source" data-source="${active}">${esc(sourceLabel)}</span>
           </div>
           ${description ? `<div class="card-desc">${esc(description)}</div>` : ''}
         `;
@@ -825,11 +805,8 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // 顶部按钮绑定
     topPrevBtn.addEventListener('click', () => goToPage(currentPage - 1));
     topNextBtn.addEventListener('click', () => goToPage(currentPage + 1));
-
-    // 底部按钮绑定
     bottomPrevBtn.addEventListener('click', () => goToPage(currentPage - 1));
     bottomNextBtn.addEventListener('click', () => goToPage(currentPage + 1));
 
@@ -874,12 +851,12 @@
 
     // ===================== 事件绑定 =====================
 
-    // 左上角点击 -> 刷新整个页面
+    // 左上角 -> 刷新整个页面
     logoReload.addEventListener('click', function() {
       location.reload();
     });
 
-    // 刷新按钮 -> 刷新当前数据源（清缓存重载）
+    // 刷新按钮 -> 刷新当前数据源
     refreshBtn.addEventListener('click', function() {
       switchTo(active, true);
     });
