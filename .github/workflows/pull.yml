@@ -2,7 +2,7 @@ name: 核心调度器
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # 每15分钟运行一次
+    - cron: '*/30 * * * *'  # 每 30 分钟运行一次
   workflow_dispatch:         # 支持手动触发
 
 jobs:
