@@ -1,16 +1,21 @@
-name: 核心调度器
+name: 核心调度器 + 部署
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 每 30 分钟运行一次
-  workflow_dispatch:         # 支持手动触发
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 jobs:
+  # 主控任务：依次拉取三个数据源，成功后下载制品并部署
   control-plane:
     runs-on: ubuntu-latest
     permissions:
-      actions: write   # 允许触发其他 workflow 的 workflow_dispatch 事件
+      actions: write
+      contents: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       - name: Get Workflow IDs
         id: get_ids
         env:
@@ -19,63 +24,196 @@ jobs:
           KOI_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/koi.yml" --jq '.id')
           ASTR_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/astr.yml" --jq '.id')
           MAI_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/mai.yml" --jq '.id')
-          DEPLOY_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/deploy.yml" --jq '.id')
           
           echo "koi_id=$KOI_ID" >> $GITHUB_OUTPUT
           echo "astr_id=$ASTR_ID" >> $GITHUB_OUTPUT
           echo "mai_id=$MAI_ID" >> $GITHUB_OUTPUT
-          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
 
-      - name: Trigger Pull Workflows
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.koi_id }}/dispatches" -f ref=main
-          gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.astr_id }}/dispatches" -f ref=main
-          gh api "/repos/${{ github.repository }}/actions/workflows/${{ steps.get_ids.outputs.mai_id }}/dispatches" -f ref=main
-
-          echo "已触发数据拉取，等待 10 秒进行初始化..."
-          sleep 10
-
-      - name: Wait for Success
+      # 拉取 Koi：最多重试 3 次，单次最长等待 60 秒
+      - name: Trigger & Wait Koi
+        id: koi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           KOI_ID="${{ steps.get_ids.outputs.koi_id }}"
-          ASTR_ID="${{ steps.get_ids.outputs.astr_id }}"
-          MAI_ID="${{ steps.get_ids.outputs.mai_id }}"
-          echo "开始轮询运行状态..."
-          while true; do
-            # 获取最新的一条运行记录
-            KOI_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
-            ASTR_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
-            MAI_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
-            
-            echo "Koi状态: $KOI_STATUS | Astr状态: $ASTR_STATUS | Mai状态: $MAI_STATUS"
+          MAX_RETRIES=3
+          RETRY_DELAY=10
 
-            # 等待所有三个任务都完成
-            if [[ "$KOI_STATUS" == "completed" && "$ASTR_STATUS" == "completed" && "$MAI_STATUS" == "completed" ]]; then
-              KOI_CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
-              ASTR_CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
-              MAI_CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
-              
-              if [[ "$KOI_CONCLUSION" == "success" && "$ASTR_CONCLUSION" == "success" && "$MAI_CONCLUSION" == "success" ]]; then
-                echo "所有拉取任务执行成功！"
-                break
-              else
-                echo "存在失败任务(Koi: $KOI_CONCLUSION, Astr: $ASTR_CONCLUSION, Mai: $MAI_CONCLUSION)，终止部署。"
-                exit 1
-              fi
-            fi
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "===== Koi 第 $attempt/$MAX_RETRIES 次尝试 ====="
             
-            sleep 8
+            gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_ID/dispatches" -f ref=main
+            sleep $RETRY_DELAY
+
+            WAIT_COUNT=0
+            while [ $WAIT_COUNT -lt 12 ]; do
+              STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
+              if [ "$STATUS" = "completed" ]; then
+                CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "✅ Koi 成功！"
+                  exit 0
+                else
+                  echo "❌ Koi 结论: $CONCLUSION"
+                  break
+                fi
+              fi
+              sleep 5
+              WAIT_COUNT=$((WAIT_COUNT + 1))
+            done
+
+            if [ $attempt -lt $MAX_RETRIES ]; then
+              echo "⏳ Koi 失败，10s 后重试..."
+              sleep 10
+            else
+              echo "❌ Koi 重试 $MAX_RETRIES 次均失败，跳过"
+            fi
           done
 
-      - name: Trigger Deploy
+      # 拉取 Astr：最多重试 3 次，单次最长等待 60 秒
+      - name: Trigger & Wait Astr
+        id: astr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          DEPLOY_ID="${{ steps.get_ids.outputs.deploy_id }}"
-          echo "数据拉取完毕且等待结束，触发部署..."
-          gh api "/repos/${{ github.repository }}/actions/workflows/$DEPLOY_ID/dispatches" -f ref=main
-          echo "部署已触发！"
+          ASTR_ID="${{ steps.get_ids.outputs.astr_id }}"
+          MAX_RETRIES=3
+          RETRY_DELAY=10
+
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "===== Astr 第 $attempt/$MAX_RETRIES 次尝试 ====="
+            
+            gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/dispatches" -f ref=main
+            sleep $RETRY_DELAY
+
+            WAIT_COUNT=0
+            while [ $WAIT_COUNT -lt 12 ]; do
+              STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
+              if [ "$STATUS" = "completed" ]; then
+                CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "✅ Astr 成功！"
+                  exit 0
+                else
+                  echo "❌ Astr 结论: $CONCLUSION"
+                  break
+                fi
+              fi
+              sleep 5
+              WAIT_COUNT=$((WAIT_COUNT + 1))
+            done
+
+            if [ $attempt -lt $MAX_RETRIES ]; then
+              echo "⏳ Astr 失败，10s 后重试..."
+              sleep 10
+            else
+              echo "❌ Astr 重试 $MAX_RETRIES 次均失败，跳过"
+            fi
+          done
+
+      # 拉取 Mai：最多重试 3 次，单次最长等待 60 秒
+      - name: Trigger & Wait Mai
+        id: mai
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MAI_ID="${{ steps.get_ids.outputs.mai_id }}"
+          MAX_RETRIES=3
+          RETRY_DELAY=10
+
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "===== Mai 第 $attempt/$MAX_RETRIES 次尝试 ====="
+            
+            gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_ID/dispatches" -f ref=main
+            sleep $RETRY_DELAY
+
+            WAIT_COUNT=0
+            while [ $WAIT_COUNT -lt 12 ]; do
+              STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_ID/runs?per_page=1" --jq '.workflow_runs[0].status')
+              if [ "$STATUS" = "completed" ]; then
+                CONCLUSION=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_ID/runs?per_page=1" --jq '.workflow_runs[0].conclusion')
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "✅ Mai 成功！"
+                  exit 0
+                else
+                  echo "❌ Mai 结论: $CONCLUSION"
+                  break
+                fi
+              fi
+              sleep 5
+              WAIT_COUNT=$((WAIT_COUNT + 1))
+            done
+
+            if [ $attempt -lt $MAX_RETRIES ]; then
+              echo "⏳ Mai 失败，10s 后重试..."
+              sleep 10
+            else
+              echo "❌ Mai 重试 $MAX_RETRIES 次均失败，跳过"
+            fi
+          done
+
+      # 获取三个拉取任务的最新 Run ID，用于后续下载制品
+      - name: Resolve latest run-ids
+        id: runids
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          KOI_WF_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/koi.yml" --jq '.id')
+          ASTR_WF_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/astr.yml" --jq '.id')
+          MAI_WF_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/mai.yml" --jq '.id')
+
+          KOI_RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/$KOI_WF_ID/runs?per_page=1" --jq '.workflow_runs[0].id')
+          ASTR_RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/$ASTR_WF_ID/runs?per_page=1" --jq '.workflow_runs[0].id')
+          MAI_RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/$MAI_WF_ID/runs?per_page=1" --jq '.workflow_runs[0].id')
+
+          echo "koi_run_id=$KOI_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "astr_run_id=$ASTR_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "mai_run_id=$MAI_RUN_ID" >> "$GITHUB_OUTPUT"
+
+      # 下载三个数据源的制品到 dist 目录
+      - name: Download Koi Data
+        uses: actions/download-artifact@v8
+        with:
+          name: koi-data
+          path: dist/koi
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.runids.outputs.koi_run_id }}
+          if-no-files-found: warn
+
+      - name: Download Astr Data
+        uses: actions/download-artifact@v8
+        with:
+          name: astr-data
+          path: dist/astr
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.runids.outputs.astr_run_id }}
+          if-no-files-found: warn
+
+      - name: Download Mai Data
+        uses: actions/download-artifact@v8
+        with:
+          name: mai-data
+          path: dist/mai
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.runids.outputs.mai_run_id }}
+          if-no-files-found: warn
+
+      # 复制静态文件到打包目录，准备部署
+      - name: Prepare static files
+        run: |
+          cp index.html dist/
+          cp CNAME dist/
+          cp favicon.ico dist/
+          touch dist/.nojekyll
+
+      # 部署到 gh-pages 分支
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
