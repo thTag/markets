@@ -179,7 +179,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           run-id: ${{ steps.runids.outputs.koi_run_id }}
-          if-no-files-found: warn
 
       - name: Download Astr Data
         uses: actions/download-artifact@v8
@@ -189,7 +188,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           run-id: ${{ steps.runids.outputs.astr_run_id }}
-          if-no-files-found: warn
 
       - name: Download Mai Data
         uses: actions/download-artifact@v8
@@ -199,7 +197,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           run-id: ${{ steps.runids.outputs.mai_run_id }}
-          if-no-files-found: warn
 
       # 复制静态文件到打包目录，准备部署
       - name: Prepare static files
