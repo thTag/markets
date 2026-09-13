@@ -9,10 +9,36 @@ jobs:
       - name: Sync Astr plugin market
         run: |
           mkdir -p astr
-          SRC_URL="https://github.com/AstrBotDevs/AstrBot_Plugins_Collection/raw/refs/heads/main/plugin_cache_original.json"
-          
-          # 拉取官方原始文件，严格只保留这 1 个文件
-          curl -fsSL "$SRC_URL" -o "astr/plugin_cache_original.json"
+          curl -fsSL "https://cloud.astrbot.app/api/v1/market/plugins.json" -o astr/plugins_raw.json
+          jq '
+            to_entries
+            | map(select(.key != "$meta"))
+            | map(
+                .value as $v
+                | ($v.repo // ("https://github.com/" + .key)) as $repo_url
+                | ($repo_url | sub("^https?://github\\.com/"; "") | sub("\\.git$"; "")) as $slug
+                | {
+                    id: .key,
+                    name: $v.name,
+                    display_name: ($v.display_name // $v.name),
+                    author: $v.author,
+                    version: $v.version,
+                    description: ($v.desc // ""),
+                    repo: $repo_url,
+                    download_url: ("https://api.github.com/repos/" + $slug + "/zipball"),
+                    logo: ($v.logo // ""),
+                    category: ($v.category // ""),
+                    tags: ($v.tags // []),
+                    support_platforms: ($v.support_platforms // []),
+                    astrbot_version: ($v.astrbot_version // ""),
+                    stars: ($v.stars // 0),
+                    download_count: ($v.download_count // 0),
+                    updated_at: ($v.updated_at // "")
+                  }
+              )
+          ' astr/plugins_raw.json > astr/plugin_cache_original.json
+          rm astr/plugins_raw.json
+          echo "✅ 已清洗 Astr 数据，共 $(jq 'length' astr/plugin_cache_original.json) 个插件"
 
       - name: Upload Astr Artifact
         uses: actions/upload-artifact@v7
